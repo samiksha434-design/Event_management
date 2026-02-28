@@ -66,6 +66,7 @@ exports.createEvent = async (req, res, next) => {
         eventId: event._id,
         priority: 'high',
         creatorName: organizerName,
+        createdBy: userId, // Include the user ID who created the event
         isPublished: true
       }, {
         headers: {

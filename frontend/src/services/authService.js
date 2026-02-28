@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Base URL for auth service — use Vite env in development or fallback to localhost
-const API_URL = import.meta.env.VITE_AUTH_URL || 'http://localhost:8001/api/auth';
+// Base URL for auth service — use API Gateway
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/auth';
 
 // Create axios instance with default config
 const authApi = axios.create({

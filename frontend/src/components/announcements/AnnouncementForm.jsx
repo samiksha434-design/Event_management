@@ -26,7 +26,6 @@ const AnnouncementForm = () => {
   const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  // eslint-disable-next-line no-unused-vars
   const { user } = useAuth();
   const isEditMode = Boolean(id);
   
@@ -101,10 +100,16 @@ const AnnouncementForm = () => {
     setSuccess(false);
 
     try {
+      // Include creatorName from user if available
+      const announcementData = {
+        ...formData,
+        creatorName: formData.creatorName || (user ? `${user.firstName} ${user.lastName}` : 'System')
+      };
+
       if (isEditMode) {
-        await announcementService.updateAnnouncement(id, formData);
+        await announcementService.updateAnnouncement(id, announcementData);
       } else {
-        await announcementService.createAnnouncement(formData);
+        await announcementService.createAnnouncement(announcementData);
       }
       
       setSuccess(true);

@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Base URL for event service
-const API_URL = import.meta.env.VITE_EVENT_URL || 'http://localhost:8002/api/events';
+// Base URL for event service through API Gateway
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/events';
 
 // Create axios instance with default config
 const eventApi = axios.create({
@@ -12,6 +12,7 @@ const eventApi = axios.create({
 });
 
 // Add token to requests if available
+
 eventApi.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -82,7 +83,7 @@ const eventService = {
   // Delete event
   deleteEvent: async (eventId) => {
     if (!eventId || eventId === 'undefined' || eventId === 'null') {
-      throw new Error('Invalid event ID for deletion');
+      throw new Error('Invalid event ID for delete');
     }
 
     try {
@@ -90,48 +91,6 @@ const eventService = {
       return response.data;
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Failed to delete event');
-    }
-  },
-
-  // Register for event
-  registerForEvent: async (eventId, registrationData) => {
-    if (!eventId || eventId === 'undefined' || eventId === 'null') {
-      throw new Error('Invalid event ID for registration');
-    }
-
-    try {
-      const response = await eventApi.post(`/${eventId}/register`, registrationData);
-      return response.data.data;
-    } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to register for event');
-    }
-  },
-
-  // Cancel registration
-  cancelRegistration: async (eventId) => {
-    if (!eventId || eventId === 'undefined' || eventId === 'null') {
-      throw new Error('Invalid event ID for cancellation');
-    }
-
-    try {
-      const response = await eventApi.delete(`/${eventId}/register`);
-      return response.data;
-    } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to cancel registration');
-    }
-  },
-
-  // Get event participants
-  getEventParticipants: async (eventId) => {
-    if (!eventId || eventId === 'undefined' || eventId === 'null') {
-      throw new Error('Invalid event ID for fetching participants');
-    }
-
-    try {
-      const response = await eventApi.get(`/${eventId}/participants`);
-      return response.data.data || [];
-    } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to fetch participants');
     }
   },
 
@@ -211,6 +170,48 @@ const eventService = {
       return response.data;
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Failed to fetch analytics');
+    }
+  },
+
+  // Register for an event
+  registerForEvent: async (eventId, registrationData) => {
+    if (!eventId || eventId === 'undefined' || eventId === 'null') {
+      throw new Error('Invalid event ID for registration');
+    }
+
+    try {
+      const response = await eventApi.post(`/${eventId}/register`, registrationData);
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to register for event');
+    }
+  },
+
+  // Cancel event registration
+  cancelRegistration: async (eventId) => {
+    if (!eventId || eventId === 'undefined' || eventId === 'null') {
+      throw new Error('Invalid event ID for cancellation');
+    }
+
+    try {
+      const response = await eventApi.delete(`/${eventId}/register`);
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to cancel registration');
+    }
+  },
+
+  // Get event participants (organizer/admin)
+  getEventParticipants: async (eventId) => {
+    if (!eventId || eventId === 'undefined' || eventId === 'null') {
+      throw new Error('Invalid event ID for participants');
+    }
+
+    try {
+      const response = await eventApi.get(`/${eventId}/participants`);
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to fetch participants');
     }
   }
 };

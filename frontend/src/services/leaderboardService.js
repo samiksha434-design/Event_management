@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Base URL for leaderboard service
-const API_URL = import.meta.env.VITE_LEADERBOARD_URL || 'http://localhost:8004/api/leaderboard';
+// Base URL for leaderboard service through API Gateway
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/leaderboard';
 
 // Create axios instance with default config
 const leaderboardApi = axios.create({

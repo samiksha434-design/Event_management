@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_ANNOUNCEMENT_URL || 'http://localhost:8003/api/announcements';
+// Base URL for announcement service through API Gateway
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/announcements';
 
 // Create axios instance
 const announcementAPI = axios.create({
@@ -80,7 +81,12 @@ const createAnnouncement = async (announcementData) => {
     const response = await announcementAPI.post('/', announcementData);
     return response.data;
   } catch (error) {
-    throw error.response?.data || error.message;
+    // Return the full error response for better debugging
+    const errorData = error.response?.data;
+    if (errorData) {
+      throw new Error(errorData.message || JSON.stringify(errorData));
+    }
+    throw new Error(error.message || 'Failed to create announcement');
   }
 };
 

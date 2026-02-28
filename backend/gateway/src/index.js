@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
-const { createProxyMiddleware } = require('http-proxy-middleware');
+const proxy = require('express-http-proxy');
 const dotenv = require('dotenv');
 const rateLimit = require('express-rate-limit');
 
@@ -37,30 +37,53 @@ app.use(express.json()); // Parse JSON request body
 // Service endpoints
 const AUTH_SERVICE = process.env.AUTH_SERVICE || 'http://localhost:8001';
 const EVENT_SERVICE = process.env.EVENT_SERVICE || 'http://localhost:8002';
-const NOTIFICATION_SERVICE = process.env.NOTIFICATION_SERVICE || 'http://localhost:8003';
+const NOTIFICATION_SERVICE = process.env.NOTIFICATION_SERVICE || 'http://localhost:8005';
 const LEADERBOARD_SERVICE = process.env.LEADERBOARD_SERVICE || 'http://localhost:8004';
-const SETTINGS_SERVICE = process.env.SETTINGS_SERVICE || 'http://localhost:8005';
+const SETTINGS_SERVICE = process.env.SETTINGS_SERVICE || 'http://localhost:8006';
 
-// Proxy middleware options
+// Proxy options
 const proxyOptions = {
-  changeOrigin: true,
-  pathRewrite: {
-    '^/api/auth': '/api/auth',
-    '^/api/events': '/api/events',
-    '^/api/notifications': '/api/notifications',
-    '^/api/leaderboard': '/api/leaderboard',
-    '^/api/settings': '/api/settings',
-    '^/api/admin': '/api/admin'
+  proxyErrorHandler: (err, res, next) => {
+    console.error('Proxy error:', err.message);
+    res.status(500).json({ success: false, message: 'Proxy error', error: err.message });
   }
 };
 
 // Proxy routes
-app.use('/api/auth', createProxyMiddleware({ ...proxyOptions, target: AUTH_SERVICE }));
-app.use('/api/admin', createProxyMiddleware({ ...proxyOptions, target: AUTH_SERVICE }));
-app.use('/api/events', createProxyMiddleware({ ...proxyOptions, target: EVENT_SERVICE }));
-app.use('/api/notifications', createProxyMiddleware({ ...proxyOptions, target: NOTIFICATION_SERVICE }));
-app.use('/api/leaderboard', createProxyMiddleware({ ...proxyOptions, target: LEADERBOARD_SERVICE }));
-app.use('/api/settings', createProxyMiddleware({ ...proxyOptions, target: SETTINGS_SERVICE }));
+app.use('/api/auth', proxy(AUTH_SERVICE, {
+  ...proxyOptions,
+  forwardPath: (req) => req.originalUrl.replace('/api/auth', '/api/auth')
+}));
+
+app.use('/api/admin', proxy(AUTH_SERVICE, {
+  ...proxyOptions,
+  forwardPath: (req) => req.originalUrl.replace('/api/admin', '/api/admin')
+}));
+
+app.use('/api/events', proxy(EVENT_SERVICE, {
+  ...proxyOptions,
+  forwardPath: (req) => req.originalUrl.replace('/api/events', '/api/events')
+}));
+
+app.use('/api/notifications', proxy(NOTIFICATION_SERVICE, {
+  ...proxyOptions,
+  forwardPath: (req) => req.originalUrl.replace('/api/notifications', '/api/notifications')
+}));
+
+app.use('/api/announcements', proxy(NOTIFICATION_SERVICE, {
+  ...proxyOptions,
+  forwardPath: (req) => req.originalUrl.replace('/api/announcements', '/api/announcements')
+}));
+
+app.use('/api/leaderboard', proxy(LEADERBOARD_SERVICE, {
+  ...proxyOptions,
+  forwardPath: (req) => req.originalUrl.replace('/api/leaderboard', '/api/leaderboard')
+}));
+
+app.use('/api/settings', proxy(SETTINGS_SERVICE, {
+  ...proxyOptions,
+  forwardPath: (req) => req.originalUrl.replace('/api/settings', '/api/settings')
+}));
 
 // Health check endpoint
 app.get('/health', (req, res) => {

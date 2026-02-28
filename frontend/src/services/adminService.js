@@ -1,8 +1,7 @@
 import axios from 'axios';
 
-// Base URL for auth service (since user management is part of auth service)
-const API_URL = import.meta.env.VITE_ADMIN_URL || 'http://localhost:8001/api/admin';
-// const API_URL = 'http://localhost:8001/api/admin';
+// Base URL for admin service through API Gateway
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/admin';
 
 // Create axios instance with default config
 const adminApi = axios.create({

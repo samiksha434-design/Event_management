@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Base URL for settings service through the API gateway
-const API_URL = import.meta.env.VITE_SETTINGS_URL || 'http://localhost:8005/api/settings';
+// Base URL for settings service through API Gateway
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/settings';
 
 // Create axios instance with default config
 const settingsApi = axios.create({
@@ -21,7 +21,7 @@ settingsApi.interceptors.request.use(
     return config;
   },
   (error) => {
-    return Promise.reject(error);
+    return error;
   }
 );
 

@@ -7,13 +7,22 @@ const Announcement = require('../models/Announcement');
  */
 exports.createAnnouncement = async (req, res, next) => {
   try {
-    const { title, content, eventId, priority, isPublished } = req.body;
+    const { title, content, eventId, priority, isPublished, createdBy, creatorName: reqCreatorName } = req.body;
     
     // Get user info from request (set by auth middleware)
-    const userId = req.user.id;
+    // Use the userId from JWT token if available, otherwise fall back to createdBy from request body
+    const userId = req.user?.id || createdBy;
+    
+    // Validate that we have a user ID
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Unable to identify the creator. Please ensure you are logged in.'
+      });
+    }
     
     // Set creator name based on available information
-    let creatorName = req.body.creatorName;
+    let creatorName = reqCreatorName;
     if (!creatorName && req.user && req.user.firstName && req.user.lastName) {
       creatorName = `${req.user.firstName} ${req.user.lastName}`;
     }
@@ -144,7 +153,18 @@ exports.updateAnnouncement = async (req, res, next) => {
     }
     
     // Check if user is authorized to update this announcement
-    if (announcement.createdBy.toString() !== req.user.id && req.user.role !== 'admin') {
+    // Handle case where user might not be available
+    const currentUserId = req.user?.id;
+    const currentUserRole = req.user?.role;
+    
+    if (!currentUserId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Not authorized to update this announcement'
+      });
+    }
+    
+    if (announcement.createdBy.toString() !== currentUserId && currentUserRole !== 'admin') {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to update this announcement'
@@ -192,7 +212,18 @@ exports.deleteAnnouncement = async (req, res, next) => {
     }
     
     // Check if user is authorized to delete this announcement
-    if (announcement.createdBy.toString() !== req.user.id && req.user.role !== 'admin') {
+    // Handle case where user might not be available
+    const currentUserId = req.user?.id;
+    const currentUserRole = req.user?.role;
+    
+    if (!currentUserId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Not authorized to delete this announcement'
+      });
+    }
+    
+    if (announcement.createdBy.toString() !== currentUserId && currentUserRole !== 'admin') {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to delete this announcement'
