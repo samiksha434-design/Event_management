@@ -22,7 +22,12 @@ const CreateEventPage = () => {
     location: '',
     capacity: 50,
     tags: [],
-    image: ''
+    image: '',
+    category: 'other',
+    eventType: 'technical',
+    college: '',
+    fees: 0,
+    enableVoting: false
   };
 
   const handleSubmit = async (eventData) => {

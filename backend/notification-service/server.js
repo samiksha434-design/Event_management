@@ -13,6 +13,7 @@ const connectDB = require('./src/config/db.config');
 
 // Import routes
 const announcementRoutes = require('./src/routes/announcement.routes');
+const emailRoutes = require('./src/routes/email.routes');
 
 // Import middleware
 const errorHandler = require('./src/middleware/error.middleware');
@@ -56,6 +57,7 @@ app.use(socketMiddleware);
 
 // Define routes
 app.use('/api/announcements', announcementRoutes);
+app.use('/api/email', emailRoutes);
 
 // Health check route
 app.get('/health', (req, res) => {

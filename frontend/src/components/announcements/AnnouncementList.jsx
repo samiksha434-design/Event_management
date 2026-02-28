@@ -21,13 +21,11 @@ import {
   Divider,
   Grid
 } from '@mui/material';
-import {
-  Delete as DeleteIcon,
-  Edit as EditIcon,
-  Notifications as NotificationsIcon,
-  NotificationsActive as NotificationsActiveIcon,
-  NotificationsOff as NotificationsOffIcon
-} from '@mui/icons-material';
+import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
+import NotificationsIcon from '@mui/icons-material/Notifications';
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
+import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';
 import { formatDistanceToNow } from 'date-fns';
 
 const priorityColors = {
@@ -51,7 +49,7 @@ const AnnouncementList = ({ eventId, showControls = false }) => {
 
   useEffect(() => {
     fetchAnnouncements();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventId]);
 
   const fetchAnnouncements = async () => {
@@ -98,7 +96,7 @@ const AnnouncementList = ({ eventId, showControls = false }) => {
         announcement._id,
         { isPublished: !announcement.isPublished }
       );
-      setAnnouncements(announcements.map(a => 
+      setAnnouncements(announcements.map(a =>
         a._id === announcement._id ? updatedAnnouncement.data : a
       ));
     } catch (err) {
@@ -133,107 +131,107 @@ const AnnouncementList = ({ eventId, showControls = false }) => {
   return (
     <Box>
       {announcements.map((announcement) => (
-       <Card
-       key={announcement._id}
-       elevation={4}
-       sx={{
-         mb: 3,
-         borderRadius: 3,
-         background: 'rgba(255, 255, 255, 0.7)',
-         backdropFilter: 'blur(6px)',
-         border: '1px solid #e0e0e0',
-         transition: 'all 0.3s ease',
-         '&:hover': {
-           boxShadow: '0 8px 24px rgba(0,0,0,0.1)',
-           transform: 'translateY(-2px)'
-         }
-       }}
-     >
-       {!announcement.isPublished && (
-         <Chip
-           label="Unpublished"
-           size="small"
-           color="warning"
-           sx={{
-             position: 'absolute',
-             top: 12,
-             right: 12,
-             opacity: 0.9,
-             fontWeight: 500,
-             textTransform: 'uppercase'
-           }}
-         />
-       )}
-       <CardContent>
-         <Stack spacing={2}>
-           {/* Title + Icon */}
-           <Stack direction="row" alignItems="center" spacing={1}>
-             {announcement.priority === 'high' ? (
-               <NotificationsActiveIcon color="error" />
-             ) : announcement.priority === 'medium' ? (
-               <NotificationsIcon color="warning" />
-             ) : (
-               <NotificationsIcon color="info" />
-             )}
-             <Typography variant="h6" fontWeight={600}>
-               {announcement.title}
-             </Typography>
-           </Stack>
-     
-           {/* Content */}
-           <Typography variant="body1" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
-             {announcement.content}
-           </Typography>
-     
-           <Divider />
-     
-           {/* Footer Row */}
-           <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap">
-             <Box display="flex" alignItems="center" gap={1}>
-               <Chip
-                 label={announcement.priority}
-                 color={priorityColors[announcement.priority]}
-                 size="small"
-                 sx={{
-                   textTransform: 'capitalize',
-                   fontWeight: 500,
-                   px: 1.5,
-                   py: 0.5,
-                   borderRadius: 2
-                 }}
-               />
-               <Typography variant="caption" color="text.secondary">
-                 By {announcement.creatorName} •{' '}
-                 {formatDistanceToNow(new Date(announcement.createdAt), {
-                   addSuffix: true
-                 })}
-               </Typography>
-             </Box>
-     
-             {/* Controls */}
-             {showControls && canModify && (
-               <Stack direction="row" spacing={1}>
-                 <IconButton
-                   size="small"
-                   onClick={() => togglePublishStatus(announcement)}
-                   color={announcement.isPublished ? 'success' : 'default'}
-                   title={announcement.isPublished ? 'Unpublish' : 'Publish'}
-                 >
-                   {announcement.isPublished ? <NotificationsIcon /> : <NotificationsOffIcon />}
-                 </IconButton>
-                 <IconButton size="small" onClick={() => handleEdit(announcement)} color="primary">
-                   <EditIcon />
-                 </IconButton>
-                 <IconButton size="small" onClick={() => handleDelete(announcement)} color="error">
-                   <DeleteIcon />
-                 </IconButton>
-               </Stack>
-             )}
-           </Stack>
-         </Stack>
-       </CardContent>
-     </Card>
-     
+        <Card
+          key={announcement._id}
+          elevation={4}
+          sx={{
+            mb: 3,
+            borderRadius: 3,
+            background: 'rgba(255, 255, 255, 0.7)',
+            backdropFilter: 'blur(6px)',
+            border: '1px solid #e0e0e0',
+            transition: 'all 0.3s ease',
+            '&:hover': {
+              boxShadow: '0 8px 24px rgba(0,0,0,0.1)',
+              transform: 'translateY(-2px)'
+            }
+          }}
+        >
+          {!announcement.isPublished && (
+            <Chip
+              label="Unpublished"
+              size="small"
+              color="warning"
+              sx={{
+                position: 'absolute',
+                top: 12,
+                right: 12,
+                opacity: 0.9,
+                fontWeight: 500,
+                textTransform: 'uppercase'
+              }}
+            />
+          )}
+          <CardContent>
+            <Stack spacing={2}>
+              {/* Title + Icon */}
+              <Stack direction="row" alignItems="center" spacing={1}>
+                {announcement.priority === 'high' ? (
+                  <NotificationsActiveIcon color="error" />
+                ) : announcement.priority === 'medium' ? (
+                  <NotificationsIcon color="warning" />
+                ) : (
+                  <NotificationsIcon color="info" />
+                )}
+                <Typography variant="h6" fontWeight={600}>
+                  {announcement.title}
+                </Typography>
+              </Stack>
+
+              {/* Content */}
+              <Typography variant="body1" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
+                {announcement.content}
+              </Typography>
+
+              <Divider />
+
+              {/* Footer Row */}
+              <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap">
+                <Box display="flex" alignItems="center" gap={1}>
+                  <Chip
+                    label={announcement.priority}
+                    color={priorityColors[announcement.priority]}
+                    size="small"
+                    sx={{
+                      textTransform: 'capitalize',
+                      fontWeight: 500,
+                      px: 1.5,
+                      py: 0.5,
+                      borderRadius: 2
+                    }}
+                  />
+                  <Typography variant="caption" color="text.secondary">
+                    By {announcement.creatorName} •{' '}
+                    {formatDistanceToNow(new Date(announcement.createdAt), {
+                      addSuffix: true
+                    })}
+                  </Typography>
+                </Box>
+
+                {/* Controls */}
+                {showControls && canModify && (
+                  <Stack direction="row" spacing={1}>
+                    <IconButton
+                      size="small"
+                      onClick={() => togglePublishStatus(announcement)}
+                      color={announcement.isPublished ? 'success' : 'default'}
+                      title={announcement.isPublished ? 'Unpublish' : 'Publish'}
+                    >
+                      {announcement.isPublished ? <NotificationsIcon /> : <NotificationsOffIcon />}
+                    </IconButton>
+                    <IconButton size="small" onClick={() => handleEdit(announcement)} color="primary">
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton size="small" onClick={() => handleDelete(announcement)} color="error">
+                      <DeleteIcon />
+                    </IconButton>
+                  </Stack>
+                )}
+              </Stack>
+            </Stack>
+          </CardContent>
+        </Card>
+
       ))}
 
       {/* Delete Confirmation Dialog */}

@@ -10,19 +10,38 @@ const EventsPage = () => {
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all'); // 'all', 'upcoming', 'past'
   const { user } = useAuth();
+  
+  // Search and filter states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [collegeFilter, setCollegeFilter] = useState('');
+  const [eventTypeFilter, setEventTypeFilter] = useState('');
+  const [feeFilter, setFeeFilter] = useState(''); // '', 'free', 'paid'
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   useEffect(() => {
     const fetchEvents = async () => {
       try {
         setLoading(true);
-        const data = await eventService.getAllEvents();
-        // console.log('Fetched data from getAllEvents:', data);
+        
+        // Build filter params
+        const filters = {};
+        if (searchTerm) filters.search = searchTerm;
+        if (categoryFilter) filters.category = categoryFilter;
+        if (collegeFilter) filters.college = collegeFilter;
+        if (eventTypeFilter) filters.eventType = eventTypeFilter;
+        if (feeFilter === 'free') filters.isFree = 'true';
+        if (feeFilter === 'paid') filters.maxFee = '999999';
+        if (startDate) filters.startDate = startDate;
+        if (endDate) filters.endDate = endDate;
+        
+        const data = await eventService.getAllEvents(filters);
         
         // Get events data, ensuring we have an array
         let eventsData = Array.isArray(data) ? data : data.data || [];
         
-        // Filter out sample events (events with titles containing 'sample' or 'test')
-        // This is a temporary solution to remove sample events from the home page
+        // Filter out sample events
         eventsData = eventsData.filter(event => {
           const title = event.title.toLowerCase();
           return !title.includes('sample') && !title.includes('test');
@@ -38,13 +57,19 @@ const EventsPage = () => {
       }
     };
   
-    fetchEvents();
-  }, []);
+    // Debounce search
+    const timeoutId = setTimeout(() => {
+      fetchEvents();
+    }, 300);
+    
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm, categoryFilter, collegeFilter, eventTypeFilter, feeFilter, startDate, endDate]);
 
-  // Filter events based on selected filter
+  // Filter events based on selected filter (all, upcoming, past)
   const filteredEvents = events.filter(event => {
     const eventDate = new Date(event.date);
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
     
     if (filter === 'upcoming') {
       return eventDate >= today;
@@ -56,6 +81,16 @@ const EventsPage = () => {
 
   // Check if user is an organizer or admin
   const canCreateEvent = user && (user.role === 'organizer' || user.role === 'admin');
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setCategoryFilter('');
+    setCollegeFilter('');
+    setEventTypeFilter('');
+    setFeeFilter('');
+    setStartDate('');
+    setEndDate('');
+  };
 
   return (
     <div className="bg-gray-100 min-h-screen py-8">
@@ -72,7 +107,117 @@ const EventsPage = () => {
           )}
         </div>
 
-        {/* Filter controls */}
+        {/* Search and Filters */}
+        <div className="mt-4 mb-6 bg-white p-4 rounded-lg shadow">
+          {/* Search Bar */}
+          <div className="mb-4">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                <svg className="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                  <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
+                </svg>
+              </div>
+              <input 
+                type="text" 
+                className="block w-full p-2 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500" 
+                placeholder="Search events by title, description, or location..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
+          
+          {/* Filter Row */}
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {/* Category Filter */}
+            <div>
+              <select 
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full"
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+              >
+                <option value="">All Categories</option>
+                <option value="coding">Coding</option>
+                <option value="debate">Debate</option>
+                <option value="dance">Dance</option>
+                <option value="hackathon">Hackathon</option>
+                <option value="robotics">Robotics</option>
+                <option value="sports">Sports</option>
+                <option value="cultural">Cultural</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            
+            {/* College Filter */}
+            <div>
+              <input 
+                type="text" 
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full"
+                placeholder="Filter by college..."
+                value={collegeFilter}
+                onChange={(e) => setCollegeFilter(e.target.value)}
+              />
+            </div>
+            
+            {/* Event Type Filter */}
+            <div>
+              <select 
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full"
+                value={eventTypeFilter}
+                onChange={(e) => setEventTypeFilter(e.target.value)}
+              >
+                <option value="">All Types</option>
+                <option value="technical">Technical</option>
+                <option value="non-technical">Non-Technical</option>
+              </select>
+            </div>
+            
+            {/* Fee Filter */}
+            <div>
+              <select 
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full"
+                value={feeFilter}
+                onChange={(e) => setFeeFilter(e.target.value)}
+              >
+                <option value="">All Fees</option>
+                <option value="free">Free</option>
+                <option value="paid">Paid</option>
+              </select>
+            </div>
+            
+            {/* Start Date Filter */}
+            <div>
+              <input 
+                type="date" 
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </div>
+            
+            {/* End Date Filter */}
+            <div>
+              <input 
+                type="date" 
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
+          </div>
+          
+          {/* Clear Filters Button */}
+          <div className="mt-4 flex justify-end">
+            <button
+              onClick={clearFilters}
+              className="text-sm text-red-600 hover:text-red-800"
+            >
+              Clear All Filters
+            </button>
+          </div>
+        </div>
+
+        {/* Time Filter controls */}
         <div className="mt-4 mb-6">
           <div className="flex space-x-4">
             <button

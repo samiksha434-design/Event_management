@@ -59,6 +59,24 @@ app.use('/api/admin', adminRoutes);
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
+
+  // Mongoose validation error
+  if (err.name === 'ValidationError') {
+    const message = Object.values(err.errors).map(val => val.message).join(', ');
+    return res.status(400).json({
+      success: false,
+      message
+    });
+  }
+
+  // Mongoose duplicate key error
+  if (err.code === 11000) {
+    return res.status(400).json({
+      success: false,
+      message: 'Email already exists'
+    });
+  }
+
   res.status(500).json({
     success: false,
     message: 'Internal Server Error',

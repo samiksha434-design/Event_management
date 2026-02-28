@@ -3,7 +3,6 @@ import axios from 'axios';
 // Base URL for event service
 const API_URL = import.meta.env.VITE_EVENT_URL || 'http://localhost:8002/api/events';
 
-// const API_URL = 'http://localhost:8002/api/events';
 // Create axios instance with default config
 const eventApi = axios.create({
   baseURL: API_URL,
@@ -38,14 +37,13 @@ const eventService = {
 
   // Get event by ID
   getEventById: async (eventId) => {
-    // Validate eventId before making API call
     if (!eventId || eventId === 'undefined' || eventId === 'null') {
       throw new Error('Invalid _id: ' + eventId);
     }
 
     try {
       const response = await eventApi.get(`/${eventId}`);
-      return response.data.data; // Extract the data from the nested structure
+      return response.data.data;
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Failed to fetch event details');
     }
@@ -55,9 +53,8 @@ const eventService = {
   createEvent: async (eventData) => {
     try {
       const response = await eventApi.post('/', eventData);
-      return response.data.data || response.data; // Extract the data from the nested structure if it exists
+      return response.data.data || response.data;
     } catch (error) {
-      // Log full error for debugging and throw detailed message
       console.error('CreateEvent error:', {
         message: error.message,
         status: error.response?.status,
@@ -124,7 +121,7 @@ const eventService = {
     }
   },
 
-  // Get registered participants
+  // Get event participants
   getEventParticipants: async (eventId) => {
     if (!eventId || eventId === 'undefined' || eventId === 'null') {
       throw new Error('Invalid event ID for fetching participants');
@@ -132,9 +129,88 @@ const eventService = {
 
     try {
       const response = await eventApi.get(`/${eventId}/participants`);
-      return response.data.data || []; // Extract the data from the nested structure
+      return response.data.data || [];
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Failed to fetch participants');
+    }
+  },
+
+  // Get user event history
+  getUserEventHistory: async () => {
+    try {
+      const response = await eventApi.get('/history');
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to fetch event history');
+    }
+  },
+
+  // Download certificate
+  getCertificate: async (eventId) => {
+    if (!eventId || eventId === 'undefined' || eventId === 'null') {
+      throw new Error('Invalid event ID for certificate');
+    }
+
+    try {
+      const response = await eventApi.get(`/${eventId}/certificate`, {
+        responseType: 'blob'
+      });
+      return response;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to download certificate');
+    }
+  },
+
+  // Submit feedback
+  submitFeedback: async (eventId, feedbackData) => {
+    if (!eventId || eventId === 'undefined' || eventId === 'null') {
+      throw new Error('Invalid event ID for feedback');
+    }
+
+    try {
+      const response = await eventApi.post(`/${eventId}/feedback`, feedbackData);
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to submit feedback');
+    }
+  },
+
+  // Vote for event
+  voteForEvent: async (eventId, voteData) => {
+    if (!eventId || eventId === 'undefined' || eventId === 'null') {
+      throw new Error('Invalid event ID for voting');
+    }
+
+    try {
+      const response = await eventApi.post(`/${eventId}/vote`, voteData);
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to submit vote');
+    }
+  },
+
+  // Verify votes (admin only)
+  verifyVotes: async (eventId) => {
+    if (!eventId || eventId === 'undefined' || eventId === 'null') {
+      throw new Error('Invalid event ID for vote verification');
+    }
+
+    try {
+      const response = await eventApi.put(`/${eventId}/verify-votes`);
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to verify votes');
+    }
+  },
+
+  // Get event analytics
+  getEventAnalytics: async (college) => {
+    try {
+      const params = college ? { college } : {};
+      const response = await eventApi.get('/analytics', { params });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to fetch analytics');
     }
   }
 };

@@ -57,6 +57,47 @@ const eventSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  category: {
+    type: String,
+    enum: ['coding', 'debate', 'dance', 'hackathon', 'robotics', 'sports', 'cultural', 'other'],
+    default: 'other'
+  },
+  eventType: {
+    type: String,
+    enum: ['technical', 'non-technical'],
+    default: 'technical'
+  },
+  college: {
+    type: String,
+    required: [true, 'College hosting the event is required']
+  },
+  fees: {
+    type: Number,
+    default: 0,
+    min: [0, 'Fees cannot be negative']
+  },
+  status: {
+    type: String,
+    enum: ['upcoming', 'ongoing', 'completed', 'cancelled'],
+    default: 'upcoming'
+  },
+  feedbacks: [{
+    rating: { type: Number, min: 1, max: 5 },
+    comment: String,
+    isAnonymous: { type: Boolean, default: true },
+    createdAt: { type: Date, default: Date.now }
+  }],
+  voting: {
+    enabled: { type: Boolean, default: false },
+    options: [{
+      candidateName: String,
+      votes: { type: Number, default: 0 }
+    }],
+    voters: [{
+      userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+    }],
+    adminVerified: { type: Boolean, default: false }
+  },
   createdAt: {
     type: Date,
     default: Date.now
@@ -68,24 +109,24 @@ const eventSchema = new mongoose.Schema({
 });
 
 // Update the updatedAt field on save
-eventSchema.pre('save', function(next) {
+eventSchema.pre('save', function (next) {
   this.updatedAt = Date.now();
   next();
 });
 
 // Virtual for checking if event is full
-eventSchema.virtual('isFull').get(function() {
+eventSchema.virtual('isFull').get(function () {
   return this.participants.length >= this.capacity;
 });
 
 // Virtual for checking if event is past
-eventSchema.virtual('isPast').get(function() {
+eventSchema.virtual('isPast').get(function () {
   return new Date(this.date) < new Date();
 });
 
 // Method to check if a user is registered for this event
-eventSchema.methods.isUserRegistered = function(userId) {
-  return this.participants.some(participant => 
+eventSchema.methods.isUserRegistered = function (userId) {
+  return this.participants.some(participant =>
     participant.userId.toString() === userId.toString()
   );
 };

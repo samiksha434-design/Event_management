@@ -19,10 +19,8 @@ import {
   Stack,
   Chip
 } from '@mui/material';
-import {
-  Add as AddIcon,
-  FilterList as FilterListIcon
-} from '@mui/icons-material';
+import AddIcon from '@mui/icons-material/Add';
+import FilterListIcon from '@mui/icons-material/FilterList';
 
 const AnnouncementsPage = () => {
   const { user } = useAuth();

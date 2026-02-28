@@ -2,7 +2,21 @@ import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 
 const EventForm = ({ initialData, onSubmit, isSubmitting, submitButtonText }) => {
-  const [formData, setFormData] = useState(initialData);
+  const [formData, setFormData] = useState({
+    title: initialData.title || '',
+    description: initialData.description || '',
+    date: initialData.date || '',
+    time: initialData.time || '',
+    location: initialData.location || '',
+    capacity: initialData.capacity || 50,
+    tags: initialData.tags || [],
+    image: initialData.image || '',
+    category: initialData.category || 'other',
+    eventType: initialData.eventType || 'technical',
+    college: initialData.college || '',
+    fees: initialData.fees || 0,
+    enableVoting: initialData.enableVoting || false
+  });
   const [tagInput, setTagInput] = useState('');
   const [errors, setErrors] = useState({});
 
@@ -263,7 +277,7 @@ const EventForm = ({ initialData, onSubmit, isSubmitting, submitButtonText }) =>
           )}
         </div>
 
-        {/* Image URL */}
+{/* Image URL */}
         <div className="sm:col-span-6">
           <label htmlFor="image" className="block text-sm font-medium text-gray-700">
             Image URL (Optional)
@@ -281,6 +295,119 @@ const EventForm = ({ initialData, onSubmit, isSubmitting, submitButtonText }) =>
           </div>
           <p className="mt-2 text-sm text-gray-500">
             Provide a URL to an image for your event
+          </p>
+        </div>
+
+        {/* Category */}
+        <div className="sm:col-span-3">
+          <label htmlFor="category" className="block text-sm font-medium text-gray-700">
+            Category
+          </label>
+          <div className="mt-1">
+            <select
+              name="category"
+              id="category"
+              value={formData.category}
+              onChange={handleChange}
+              className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md px-3 py-2"
+            >
+              <option value="coding">Coding</option>
+              <option value="debate">Debate</option>
+              <option value="dance">Dance</option>
+              <option value="hackathon">Hackathon</option>
+              <option value="robotics">Robotics</option>
+              <option value="sports">Sports</option>
+              <option value="cultural">Cultural</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <p className="mt-2 text-sm text-gray-500">
+            Select the category for your event
+          </p>
+        </div>
+
+        {/* Event Type */}
+        <div className="sm:col-span-3">
+          <label htmlFor="eventType" className="block text-sm font-medium text-gray-700">
+            Event Type
+          </label>
+          <div className="mt-1">
+            <select
+              name="eventType"
+              id="eventType"
+              value={formData.eventType}
+              onChange={handleChange}
+              className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md px-3 py-2"
+            >
+              <option value="technical">Technical</option>
+              <option value="non-technical">Non-Technical</option>
+            </select>
+          </div>
+          <p className="mt-2 text-sm text-gray-500">
+            Select whether this is a technical or non-technical event
+          </p>
+        </div>
+
+        {/* College */}
+        <div className="sm:col-span-3">
+          <label htmlFor="college" className="block text-sm font-medium text-gray-700">
+            College / Organization *
+          </label>
+          <div className="mt-1">
+            <input
+              type="text"
+              name="college"
+              id="college"
+              value={formData.college}
+              onChange={handleChange}
+              className={`shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md px-3 py-2 ${errors.college ? 'border-red-300' : ''}`}
+              placeholder="Enter college or organization name"
+            />
+          </div>
+          <p className="mt-2 text-sm text-gray-500">
+            Name of the college or organization hosting this event
+          </p>
+        </div>
+
+        {/* Fees */}
+        <div className="sm:col-span-3">
+          <label htmlFor="fees" className="block text-sm font-medium text-gray-700">
+            Registration Fees (₹)
+          </label>
+          <div className="mt-1">
+            <input
+              type="number"
+              name="fees"
+              id="fees"
+              min="0"
+              value={formData.fees}
+              onChange={handleChange}
+              className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md px-3 py-2"
+              placeholder="0"
+            />
+          </div>
+          <p className="mt-2 text-sm text-gray-500">
+            Enter 0 for free events
+          </p>
+        </div>
+
+        {/* Enable Voting */}
+        <div className="sm:col-span-6">
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              name="enableVoting"
+              id="enableVoting"
+              checked={formData.enableVoting}
+              onChange={(e) => setFormData({ ...formData, enableVoting: e.target.checked })}
+              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+            />
+            <label htmlFor="enableVoting" className="ml-2 block text-sm font-medium text-gray-700">
+              Enable Audience Voting System
+            </label>
+          </div>
+          <p className="mt-1 text-sm text-gray-500">
+            Enable this to allow participants to vote. Votes will require admin verification for authenticity.
           </p>
         </div>
       </div>

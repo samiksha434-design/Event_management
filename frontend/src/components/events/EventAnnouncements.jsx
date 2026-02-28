@@ -23,13 +23,11 @@ import {
   MenuItem,
   Grid
 } from '@mui/material';
-import {
-  Add as AddIcon,
-  NotificationsActive as NotificationsActiveIcon,
-  Notifications as NotificationsIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon
-} from '@mui/icons-material';
+import AddIcon from '@mui/icons-material/Add';
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
+import NotificationsIcon from '@mui/icons-material/Notifications';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { formatDistanceToNow } from 'date-fns';
 import { useAuth } from '../../context/AuthContext';
 
@@ -55,29 +53,29 @@ const EventAnnouncements = ({ eventId, eventTitle }) => {
   const [currentAnnouncementId, setCurrentAnnouncementId] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
-  
+
   const { user } = useAuth();
   const { socket, connected, joinEventRoom, leaveEventRoom } = useSocket();
-  
+
   const isAdmin = user?.role === 'admin';
   const isOrganizer = user?.role === 'organizer';
   const canModify = isAdmin || isOrganizer;
 
   useEffect(() => {
     fetchAnnouncements();
-    
+
     // Join event room for real-time updates
     if (socket && connected && eventId) {
       joinEventRoom(eventId);
     }
-    
+
     return () => {
       // Leave event room when component unmounts
       if (socket && connected && eventId) {
         leaveEventRoom(eventId);
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventId, socket, connected]);
 
   useEffect(() => {
@@ -93,7 +91,7 @@ const EventAnnouncements = ({ eventId, eventTitle }) => {
     // Listen for updated announcements
     const handleUpdateAnnouncement = (data) => {
       if (data.announcement.eventId === eventId) {
-        setAnnouncements(prev => 
+        setAnnouncements(prev =>
           prev.map(a => a._id === data.announcement._id ? data.announcement : a)
         );
       }
@@ -101,7 +99,7 @@ const EventAnnouncements = ({ eventId, eventTitle }) => {
 
     // Listen for deleted announcements
     const handleDeleteAnnouncement = (data) => {
-      setAnnouncements(prev => 
+      setAnnouncements(prev =>
         prev.filter(a => a._id !== data.id)
       );
     };
@@ -217,15 +215,15 @@ const EventAnnouncements = ({ eventId, eventTitle }) => {
           </Button>
         )}
       </Box>
-      
+
       <Divider sx={{ mb: 3 }} />
-      
+
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>
           {error}
         </Alert>
       )}
-      
+
       {announcements.length === 0 ? (
         <Alert severity="info">
           No announcements for this event yet.
@@ -233,15 +231,15 @@ const EventAnnouncements = ({ eventId, eventTitle }) => {
       ) : (
         <Box>
           {announcements.map((announcement) => (
-            <Paper 
-              key={announcement._id} 
-              elevation={1} 
-              sx={{ 
-                p: 2, 
-                mb: 2, 
-                borderLeft: announcement.priority === 'high' ? '4px solid #f44336' : 
-                          announcement.priority === 'medium' ? '4px solid #ff9800' : 
-                          '4px solid #2196f3'
+            <Paper
+              key={announcement._id}
+              elevation={1}
+              sx={{
+                p: 2,
+                mb: 2,
+                borderLeft: announcement.priority === 'high' ? '4px solid #f44336' :
+                  announcement.priority === 'medium' ? '4px solid #ff9800' :
+                    '4px solid #2196f3'
               }}
             >
               <Grid container spacing={2}>
@@ -251,9 +249,9 @@ const EventAnnouncements = ({ eventId, eventTitle }) => {
                       {announcement.priority === 'high' ? (
                         <NotificationsActiveIcon color="error" sx={{ mr: 1 }} />
                       ) : (
-                        <NotificationsIcon 
-                          color={announcement.priority === 'medium' ? 'warning' : 'info'} 
-                          sx={{ mr: 1 }} 
+                        <NotificationsIcon
+                          color={announcement.priority === 'medium' ? 'warning' : 'info'}
+                          sx={{ mr: 1 }}
                         />
                       )}
                       <Typography variant="h6">
@@ -262,15 +260,15 @@ const EventAnnouncements = ({ eventId, eventTitle }) => {
                     </Box>
                     {canModify && (
                       <Box>
-                        <IconButton 
-                          size="small" 
+                        <IconButton
+                          size="small"
                           onClick={() => handleEdit(announcement)}
                           color="primary"
                         >
                           <EditIcon fontSize="small" />
                         </IconButton>
-                        <IconButton 
-                          size="small" 
+                        <IconButton
+                          size="small"
                           onClick={() => handleDelete(announcement)}
                           color="error"
                         >
@@ -280,22 +278,22 @@ const EventAnnouncements = ({ eventId, eventTitle }) => {
                     )}
                   </Box>
                 </Grid>
-                
+
                 <Grid item xs={12}>
                   <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
                     {announcement.content}
                   </Typography>
                 </Grid>
-                
+
                 <Grid item xs={12}>
                   <Box display="flex" justifyContent="space-between" alignItems="center">
                     <Typography variant="caption" color="text.secondary">
                       Posted by {announcement.creatorName} • {formatDistanceToNow(new Date(announcement.createdAt), { addSuffix: true })}
                     </Typography>
-                    <Chip 
-                      label={announcement.priority} 
-                      color={priorityColors[announcement.priority]} 
-                      size="small" 
+                    <Chip
+                      label={announcement.priority}
+                      color={priorityColors[announcement.priority]}
+                      size="small"
                     />
                   </Box>
                 </Grid>
@@ -304,7 +302,7 @@ const EventAnnouncements = ({ eventId, eventTitle }) => {
           ))}
         </Box>
       )}
-      
+
       {/* Create/Edit Announcement Dialog */}
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
         <DialogTitle>
@@ -324,7 +322,7 @@ const EventAnnouncements = ({ eventId, eventTitle }) => {
                   inputProps={{ maxLength: 100 }}
                 />
               </Grid>
-              
+
               <Grid item xs={12}>
                 <TextField
                   fullWidth
@@ -337,7 +335,7 @@ const EventAnnouncements = ({ eventId, eventTitle }) => {
                   rows={4}
                 />
               </Grid>
-              
+
               <Grid item xs={12}>
                 <FormControl fullWidth>
                   <InputLabel>Priority</InputLabel>
@@ -363,7 +361,7 @@ const EventAnnouncements = ({ eventId, eventTitle }) => {
           </Button>
         </DialogActions>
       </Dialog>
-      
+
       {/* Delete Confirmation Dialog */}
       <Dialog
         open={deleteDialogOpen}

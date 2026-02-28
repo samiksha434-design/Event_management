@@ -10,7 +10,9 @@ exports.generateToken = (user) => {
     { 
       id: user._id,
       role: user.role,
-      college: user.college
+      college: user.college,
+      firstName: user.firstName,
+      lastName: user.lastName
     },
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRE || '1d' }

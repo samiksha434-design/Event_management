@@ -12,7 +12,8 @@ import {
   IconButton,
   Divider
 } from '@mui/material';
-import { Close as CloseIcon, NotificationsActive as NotificationsActiveIcon } from '@mui/icons-material';
+import CloseIcon from '@mui/icons-material/Close';
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 
 const RealtimeAnnouncements = ({ eventId = null }) => {
   const { socket, connected } = useSocket();
@@ -52,7 +53,7 @@ const RealtimeAnnouncements = ({ eventId = null }) => {
     return () => {
       socket.off('newAnnouncement');
       socket.off('updateAnnouncement');
-      
+
       // Leave event room if eventId is provided
       if (eventId) {
         socket.emit('leaveEvent', eventId);
@@ -75,24 +76,24 @@ const RealtimeAnnouncements = ({ eventId = null }) => {
       anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
       TransitionComponent={Slide}
     >
-      <Paper 
-        elevation={4} 
+      <Paper
+        elevation={4}
         sx={{
           width: '100%',
           maxWidth: 400,
           p: 2,
-          borderLeft: notification?.priority === 'high' ? '4px solid #f44336' : 
-                     notification?.priority === 'medium' ? '4px solid #ff9800' : 
-                     '4px solid #2196f3'
+          borderLeft: notification?.priority === 'high' ? '4px solid #f44336' :
+            notification?.priority === 'medium' ? '4px solid #ff9800' :
+              '4px solid #2196f3'
         }}
       >
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
           <Box display="flex" alignItems="center">
-            <NotificationsActiveIcon 
-              color={notification?.priority === 'high' ? 'error' : 
-                    notification?.priority === 'medium' ? 'warning' : 
-                    'info'} 
-              sx={{ mr: 1 }} 
+            <NotificationsActiveIcon
+              color={notification?.priority === 'high' ? 'error' :
+                notification?.priority === 'medium' ? 'warning' :
+                  'info'}
+              sx={{ mr: 1 }}
             />
             <Typography variant="subtitle1" component="div" fontWeight="bold">
               {notification?.updated ? 'Announcement Updated' : 'New Announcement'}
@@ -102,19 +103,19 @@ const RealtimeAnnouncements = ({ eventId = null }) => {
             <CloseIcon fontSize="small" />
           </IconButton>
         </Box>
-        
+
         <Typography variant="body1" fontWeight="medium" gutterBottom>
           {notification?.title}
         </Typography>
-        
+
         <Divider sx={{ my: 1 }} />
-        
+
         <Typography variant="body2" sx={{ mb: 1 }}>
-          {notification?.content.length > 150 
-            ? `${notification?.content.substring(0, 150)}...` 
+          {notification?.content.length > 150
+            ? `${notification?.content.substring(0, 150)}...`
             : notification?.content}
         </Typography>
-        
+
         <Box display="flex" justifyContent="space-between" alignItems="center">
           <Typography variant="caption" color="text.secondary">
             By {notification?.creatorName}
