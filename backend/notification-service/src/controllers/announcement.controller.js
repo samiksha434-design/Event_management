@@ -1,4 +1,5 @@
 const Announcement = require('../models/Announcement');
+const { sendNotificationEmail } = require('../utils/email.utils');
 
 /**
  * @desc    Create a new announcement
@@ -46,6 +47,18 @@ exports.createAnnouncement = async (req, res, next) => {
       req.io.emit('newAnnouncement', {
         announcement
       });
+    }
+    
+    // Send email notification to admin
+    try {
+      const adminEmail = process.env.ADMIN_EMAIL || 'admin@collexa.com';
+      await sendNotificationEmail({
+        to: adminEmail,
+        subject: `New Announcement: ${title}`,
+        message: `A new announcement "${title}" has been created by ${creatorName}.\n\nContent: ${content}`
+      });
+    } catch (emailErr) {
+      console.error('Failed to send admin notification email:', emailErr.message);
     }
     
     res.status(201).json({

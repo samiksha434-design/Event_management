@@ -51,7 +51,24 @@ const eventSchema = new mongoose.Schema({
       type: Date,
       default: Date.now
     },
-    specialRequirements: String
+    specialRequirements: String,
+    attendanceStatus: {
+      type: String,
+      enum: ['registered', 'attended', 'completed', 'absent'],
+      default: 'registered'
+    },
+    certificateId: {
+      type: String,
+      default: null
+    },
+    certificatePath: {
+      type: String,
+      default: null
+    },
+    certificateGeneratedAt: {
+      type: Date,
+      default: null
+    }
   }],
   image: {
     type: String,

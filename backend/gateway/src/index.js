@@ -34,7 +34,7 @@ app.use(cors({
 })); // Enable CORS for all routes
 app.use(express.json()); // Parse JSON request body
 
-// Service endpoints
+// Service endpoints - Updated to match actual running ports
 const AUTH_SERVICE = process.env.AUTH_SERVICE || 'http://localhost:8001';
 const EVENT_SERVICE = process.env.EVENT_SERVICE || 'http://localhost:8002';
 const NOTIFICATION_SERVICE = process.env.NOTIFICATION_SERVICE || 'http://localhost:8005';
@@ -43,6 +43,9 @@ const SETTINGS_SERVICE = process.env.SETTINGS_SERVICE || 'http://localhost:8006'
 
 // Proxy options
 const proxyOptions = {
+  proxyReqPathResolver: (req) => {
+    return req.originalUrl;
+  },
   proxyErrorHandler: (err, res, next) => {
     console.error('Proxy error:', err.message);
     res.status(500).json({ success: false, message: 'Proxy error', error: err.message });
@@ -50,40 +53,14 @@ const proxyOptions = {
 };
 
 // Proxy routes
-app.use('/api/auth', proxy(AUTH_SERVICE, {
-  ...proxyOptions,
-  forwardPath: (req) => req.originalUrl.replace('/api/auth', '/api/auth')
-}));
-
-app.use('/api/admin', proxy(AUTH_SERVICE, {
-  ...proxyOptions,
-  forwardPath: (req) => req.originalUrl.replace('/api/admin', '/api/admin')
-}));
-
-app.use('/api/events', proxy(EVENT_SERVICE, {
-  ...proxyOptions,
-  forwardPath: (req) => req.originalUrl.replace('/api/events', '/api/events')
-}));
-
-app.use('/api/notifications', proxy(NOTIFICATION_SERVICE, {
-  ...proxyOptions,
-  forwardPath: (req) => req.originalUrl.replace('/api/notifications', '/api/notifications')
-}));
-
-app.use('/api/announcements', proxy(NOTIFICATION_SERVICE, {
-  ...proxyOptions,
-  forwardPath: (req) => req.originalUrl.replace('/api/announcements', '/api/announcements')
-}));
-
-app.use('/api/leaderboard', proxy(LEADERBOARD_SERVICE, {
-  ...proxyOptions,
-  forwardPath: (req) => req.originalUrl.replace('/api/leaderboard', '/api/leaderboard')
-}));
-
-app.use('/api/settings', proxy(SETTINGS_SERVICE, {
-  ...proxyOptions,
-  forwardPath: (req) => req.originalUrl.replace('/api/settings', '/api/settings')
-}));
+app.use('/api/auth', proxy(AUTH_SERVICE, proxyOptions));
+app.use('/api/admin', proxy(AUTH_SERVICE, proxyOptions));
+app.use('/api/events', proxy(EVENT_SERVICE, proxyOptions));
+app.use('/api/notifications', proxy(NOTIFICATION_SERVICE, proxyOptions));
+app.use('/api/email', proxy(NOTIFICATION_SERVICE, proxyOptions));
+app.use('/api/announcements', proxy(NOTIFICATION_SERVICE, proxyOptions));
+app.use('/api/leaderboard', proxy(LEADERBOARD_SERVICE, proxyOptions));
+app.use('/api/settings', proxy(SETTINGS_SERVICE, proxyOptions));
 
 // Health check endpoint
 app.get('/health', (req, res) => {

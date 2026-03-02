@@ -1,5 +1,7 @@
 const Event = require('../models/Event');
 const PDFDocument = require('pdfkit');
+const axios = require('axios');
+const { generateCertificate } = require('../utils/certificate.utils');
 
 exports.getUserEventHistory = async (req, res, next) => {
     try {
@@ -141,6 +143,163 @@ exports.getEventAnalytics = async (req, res, next) => {
                 categoryPopularity
             }
         });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// Send event results to all participants
+exports.sendEventResults = async (req, res, next) => {
+    try {
+        const event = await Event.findById(req.params.id);
+        if (!event) return res.status(404).json({ success: false, message: 'Event not found' });
+
+        // Check authorization - only event creator or admin can send results
+        if (event.createdBy.toString() !== req.user.id.toString() && req.user.role !== 'admin') {
+            return res.status(403).json({ success: false, message: 'Not authorized to send event results' });
+        }
+
+        const { results, message } = req.body;
+        
+        if (!results && !message) {
+            return res.status(400).json({ success: false, message: 'Please provide results or message' });
+        }
+
+        const notificationServiceUrl = process.env.NOTIFICATION_SERVICE || 'http://localhost:8005';
+        const adminEmail = process.env.ADMIN_EMAIL || 'admin@collexa.com';
+
+        // Get all participant emails
+        const participants = event.participants.map(p => ({
+            email: p.email,
+            name: p.name
+        }));
+
+        if (participants.length === 0) {
+            return res.status(400).json({ success: false, message: 'No participants to notify' });
+        }
+
+        // Send emails to all participants
+        const emailPromises = participants.map(async (participant) => {
+            try {
+                await axios.post(`${notificationServiceUrl}/api/email/send`, {
+                    to: participant.email,
+                    subject: `Results Announced: ${event.title}`,
+                    message: `Hello ${participant.name},\n\nThe results for "${event.title}" have been announced!\n\n${results || ''}\n\n${message || ''}\n\nThank you for participating in Collexa Events!`
+                });
+                return { email: participant.email, success: true };
+            } catch (err) {
+                return { email: participant.email, success: false, error: err.message };
+            }
+        });
+
+        const emailResults = await Promise.all(emailPromises);
+        const successful = emailResults.filter(r => r.success).length;
+        const failed = emailResults.filter(r => !r.success).length;
+
+        // Also notify admin
+        await axios.post(`${notificationServiceUrl}/api/email/send`, {
+            to: adminEmail,
+            subject: `Event Results Sent: ${event.title}`,
+            message: `Results for event "${event.title}" have been sent to participants.\n\nTotal participants: ${participants.length}\nSuccessful: ${successful}\nFailed: ${failed}`
+        }).catch(() => {});
+
+        res.status(200).json({
+            success: true,
+            message: `Event results sent: ${successful} successful, ${failed} failed`,
+            data: { total: participants.length, successful, failed }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// Update attendance status and generate certificate when completed
+exports.updateAttendance = async (req, res, next) => {
+    try {
+        const event = await Event.findById(req.params.id);
+        if (!event) return res.status(404).json({ success: false, message: 'Event not found' });
+
+        // Check authorization - only event creator or admin can update attendance
+        if (event.createdBy.toString() !== req.user.id.toString() && req.user.role !== 'admin') {
+            return res.status(403).json({ success: false, message: 'Not authorized to update attendance' });
+        }
+
+        const { participantId, attendanceStatus } = req.body;
+
+        // Validate attendance status
+        const validStatuses = ['registered', 'attended', 'completed', 'absent'];
+        if (!validStatuses.includes(attendanceStatus)) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Invalid attendance status. Must be one of: registered, attended, completed, absent' 
+            });
+        }
+
+        // Find the participant
+        const participantIndex = event.participants.findIndex(
+            p => p.userId.toString() === participantId || p._id.toString() === participantId
+        );
+
+        if (participantIndex === -1) {
+            return res.status(404).json({ success: false, message: 'Participant not found' });
+        }
+
+        const participant = event.participants[participantIndex];
+        const previousStatus = participant.attendanceStatus;
+
+        // Update attendance status
+        event.participants[participantIndex].attendanceStatus = attendanceStatus;
+
+        // If status changes to "completed", generate certificate
+        if (attendanceStatus === 'completed' && previousStatus !== 'completed') {
+            try {
+                console.log(`Generating certificate for participant: ${participant.name}`);
+                
+                // Generate PDF certificate
+                const certResult = await generateCertificate(
+                    participant.name,
+                    event.title,
+                    event.date
+                );
+
+                // Update participant with certificate details
+                event.participants[participantIndex].certificateId = certResult.certificateId;
+                event.participants[participantIndex].certificatePath = certResult.certificatePath;
+                event.participants[participantIndex].certificateGeneratedAt = new Date();
+
+                console.log(`Certificate generated: ${certResult.certificateId} at ${certResult.certificatePath}`);
+
+                // Send certificate email notification
+                try {
+                    const notificationServiceUrl = process.env.NOTIFICATION_SERVICE || 'http://localhost:8005';
+                    await axios.post(`${notificationServiceUrl}/api/email/send`, {
+                        to: participant.email,
+                        subject: `Your Certificate: ${event.title}`,
+                        message: `Hello ${participant.name},\n\nCongratulations! Your certificate for participating in "${event.title}" has been generated.\n\nCertificate ID: ${certResult.certificateId}\nEvent Date: ${new Date(event.date).toLocaleDateString()}\n\nYou can download your certificate from the event page.\n\nThank you for participating in Collexa Events!`
+                    }).catch(err => console.error('Failed to send certificate email:', err.message));
+                } catch (emailErr) {
+                    console.error('Failed to send certificate notification:', emailErr.message);
+                }
+
+            } catch (certError) {
+                console.error('Error generating certificate:', certError);
+                // Continue even if certificate generation fails
+            }
+        }
+
+        await event.save();
+
+        res.status(200).json({
+            success: true,
+            message: `Attendance updated to ${attendanceStatus}`,
+            data: {
+                participantId: participant._id,
+                attendanceStatus: attendanceStatus,
+                certificateId: event.participants[participantIndex].certificateId || null,
+                certificateGenerated: attendanceStatus === 'completed' && previousStatus !== 'completed'
+            }
+        });
+
     } catch (error) {
         next(error);
     }

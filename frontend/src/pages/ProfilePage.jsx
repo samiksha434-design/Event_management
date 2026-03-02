@@ -21,6 +21,7 @@ const ProfilePage = () => {
   // Event history state
   const [eventHistory, setEventHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [certificates, setCertificates] = useState([]);
 
   // Redirect if user is not logged in
   useEffect(() => {
@@ -55,7 +56,7 @@ const ProfilePage = () => {
     fetchProfileData();
   }, [user]);
 
-  // Fetch user event history
+  // Fetch user event history and filter for certificates
   useEffect(() => {
     const fetchEventHistory = async () => {
       if (!user) return;
@@ -63,7 +64,28 @@ const ProfilePage = () => {
       try {
         setHistoryLoading(true);
         const response = await eventService.getUserEventHistory();
-        setEventHistory(response.data || []);
+        const events = response.data || [];
+        setEventHistory(events);
+        
+        // Filter events where user has a certificate (attendanceStatus === 'completed')
+        const userCerts = [];
+        events.forEach(event => {
+          const participant = event.participants?.find(
+            p => p.userId === user._id || p.userId === user.id
+          );
+          if (participant && participant.attendanceStatus === 'completed' && participant.certificateId) {
+            userCerts.push({
+              eventId: event._id,
+              eventTitle: event.title,
+              eventDate: event.date,
+              college: event.college,
+              certificateId: participant.certificateId,
+              certificatePath: participant.certificatePath,
+              certificateGeneratedAt: participant.certificateGeneratedAt
+            });
+          }
+        });
+        setCertificates(userCerts);
       } catch (err) {
         console.error('Failed to fetch event history:', err);
       } finally {
@@ -103,8 +125,9 @@ const ProfilePage = () => {
   };
 
   // Handle certificate download
-  const handleDownloadCertificate = async (eventId, eventTitle) => {
+  const handleDownloadCertificate = async (eventId, certificatePath, eventTitle) => {
     try {
+      // First try to get the certificate from the server
       const response = await eventService.getCertificate(eventId);
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
@@ -117,7 +140,7 @@ const ProfilePage = () => {
       window.URL.revokeObjectURL(url);
     } catch (err) {
       console.error('Failed to download certificate:', err);
-      alert(err.message || 'Failed to download certificate. Certificates are only available for past events you participated in.');
+      alert(err.message || 'Failed to download certificate. Certificates are only available for completed events you participated in.');
     }
   };
 
@@ -340,11 +363,67 @@ const ProfilePage = () => {
         </div>
       </div>
 
+      {/* Certificates Section - Show if user has any certificates */}
+      {certificates.length > 0 && (
+        <div className="bg-white rounded-xl shadow-md overflow-hidden mt-8">
+          <div className="bg-gradient-to-r from-yellow-500 to-orange-600 px-6 py-4">
+            <h2 className="text-2xl font-bold text-white">My Certificates</h2>
+            <p className="text-yellow-100 text-sm mt-1">Download your earned certificates</p>
+          </div>
+          <div className="p-6">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Event</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">College</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Certificate ID</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {certificates.map((cert) => (
+                    <tr key={cert.eventId} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">{cert.eventTitle}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {cert.college}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {formatDate(cert.eventDate)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-mono">
+                          {cert.certificateId}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button
+                          onClick={() => handleDownloadCertificate(cert.eventId, cert.certificatePath, cert.eventTitle)}
+                          className="text-green-600 hover:text-green-900 flex items-center"
+                        >
+                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          Download
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Event History Section */}
-      <div className="bg-white rounded-xl shadow-md overflow-hidden">
+      <div className="bg-white rounded-xl shadow-md overflow-hidden mt-8">
         <div className="bg-gradient-to-r from-green-600 to-teal-800 px-6 py-4">
           <h2 className="text-2xl font-bold text-white">My Event History</h2>
-          <p className="text-green-100 text-sm mt-1">View your past events and download certificates</p>
+          <p className="text-green-100 text-sm mt-1">View your past events and participation status</p>
         </div>
         <div className="p-6">
           {historyLoading ? (
@@ -367,64 +446,81 @@ const ProfilePage = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {eventHistory.map((event) => {
                     const isPast = new Date(event.date) < new Date();
+                    // Find user's participation record
+                    const participant = event.participants?.find(
+                      p => p.userId === user?._id || p.userId === user?.id
+                    );
+                    const hasCertificate = participant?.attendanceStatus === 'completed' && participant?.certificateId;
+                    
                     return (
                       <tr key={event._id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">{event.title}</div>
-                          <div className="text-sm text-gray-500">{event.location}</div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {event.college}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {formatDate(event.date)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                            {event.category}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {event.college}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {formatDate(event.date)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
+                          {event.category || 'N/A'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {participant ? (
+                          <span className={`px-2 py-1 rounded text-xs ${
+                            participant.attendanceStatus === 'completed' 
+                              ? 'bg-green-100 text-green-800' 
+                              : participant.attendanceStatus === 'registered'
+                                ? 'bg-blue-100 text-blue-800'
+                                : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {participant.attendanceStatus === 'completed' 
+                              ? 'Completed' 
+                              : participant.attendanceStatus === 'registered'
+                                ? 'Registered'
+                                : participant.attendanceStatus || 'Unknown'}
                           </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {isPast ? (
-                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
-                              Completed
-                            </span>
-                          ) : (
-                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                              Upcoming
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          {isPast ? (
-                            <button
-                              onClick={() => handleDownloadCertificate(event._id, event.title)}
-                              className="text-green-600 hover:text-green-900 flex items-center"
-                            >
-                              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                              </svg>
-                              Download
-                            </button>
-                          ) : (
-                            <span className="text-gray-400">Not available</span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
+                        ) : (
+                          <span className="text-gray-400 text-sm">Not registered</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        {hasCertificate ? (
+                          <button
+                            onClick={() => handleDownloadCertificate(event._id, event.certificatePath, event.title)}
+                            className="text-green-600 hover:text-green-900 flex items-center"
+                          >
+                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            Download
+                          </button>
+                        ) : (
+                          <span className="text-gray-400 text-sm">Not available</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
                 </tbody>
               </table>
             </div>
           ) : (
             <div className="text-center py-8">
-              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-              <p className="mt-2 text-gray-500">You haven't participated in any events yet.</p>
-              <Link to="/events" className="mt-4 inline-block text-indigo-600 hover:text-indigo-800">
+              <p className="mt-2 text-gray-500">No event history found</p>
+              <p className="text-sm text-gray-400">Your registered and past events will appear here</p>
+              <button
+                onClick={() => navigate('/events')}
+                className="mt-4 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+              >
                 Browse Events
-              </Link>
+              </button>
             </div>
           )}
         </div>

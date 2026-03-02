@@ -17,7 +17,9 @@ const {
   submitFeedback,
   voteForEvent,
   verifyVotes,
-  getEventAnalytics
+  getEventAnalytics,
+  sendEventResults,
+  updateAttendance
 } = require('../controllers/advanced.controller');
 
 const router = express.Router();
@@ -45,5 +47,11 @@ router.get('/:id/certificate', protect, downloadCertificate);
 router.post('/:id/feedback', protect, submitFeedback);
 router.post('/:id/vote', protect, voteForEvent);
 router.put('/:id/verify-votes', protect, authorize('admin'), verifyVotes);
+
+// Event results notification
+router.post('/:id/send-results', protect, sendEventResults);
+
+// Attendance management
+router.put('/:id/attendance', protect, updateAttendance);
 
 module.exports = router;

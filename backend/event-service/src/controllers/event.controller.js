@@ -59,7 +59,7 @@ exports.createEvent = async (req, res, next) => {
 
     // Send announcement to notification-service
     try {
-      const notificationServiceUrl = process.env.NOTIFICATION_SERVICE || 'http://localhost:8003';
+      const notificationServiceUrl = process.env.NOTIFICATION_SERVICE || 'http://localhost:8005';
       await axios.post(`${notificationServiceUrl}/api/announcements`, {
         title: `New Event: ${title}`,
         content: `A new event '${title}' has been announced by ${organizerName}.`,
@@ -323,16 +323,27 @@ exports.registerForEvent = async (req, res, next) => {
 
     await event.save();
 
-    // Trigger email notification
+    // Trigger email notification to participant
     try {
-      const notificationServiceUrl = process.env.NOTIFICATION_SERVICE || 'http://localhost:8003';
+      const notificationServiceUrl = process.env.NOTIFICATION_SERVICE || 'http://localhost:8005';
+      const adminEmail = process.env.ADMIN_EMAIL || 'admin@collexa.com';
+      
       if (participantEmail && participantEmail !== 'No email provided') {
+        // Send confirmation to participant
         await axios.post(`${notificationServiceUrl}/api/email/send`, {
           to: participantEmail,
           subject: `Registration Confirmed: ${event.title}`,
-          message: `Hello ${participantName},\n\nYou have successfully registered for the event "${event.title}" hosted by ${event.college || event.organizerName}. The event is scheduled on ${new Date(event.date).toLocaleDateString()}.\n\nThank you!`
+          message: `Hello ${participantName},\n\nYou have successfully registered for the event "${event.title}" hosted by ${event.college || event.organizerName}. The event is scheduled on ${new Date(event.date).toLocaleDateString()}.\n\nLocation: ${event.location || 'TBA'}\n\nThank you for using Collexa Events!`
         });
       }
+      
+      // Notify admin about new registration
+      await axios.post(`${notificationServiceUrl}/api/email/send`, {
+        to: adminEmail,
+        subject: `New Registration: ${event.title}`,
+        message: `New registration for event "${event.title}".\n\nParticipant: ${participantName}\nEmail: ${participantEmail}\nCollege: ${req.user.college || 'N/A'}\n\nTotal participants: ${event.participants.length}/${event.capacity}`
+      }).catch(err => console.error('Failed to notify admin:', err.message));
+      
     } catch (err) {
       console.error('Failed to send registration email:', err.message);
     }
