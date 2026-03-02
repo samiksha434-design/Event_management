@@ -9,26 +9,26 @@ const EventDetailPage = () => {
   const { eventId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  
+
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isRegistered, setIsRegistered] = useState(false);
   const [participants, setParticipants] = useState([]);
   const [showRegistrationForm, setShowRegistrationForm] = useState(false);
-  
+
   // Feedback state
   const [showFeedbackForm, setShowFeedbackForm] = useState(false);
   const [feedbackRating, setFeedbackRating] = useState(5);
   const [feedbackComment, setFeedbackComment] = useState('');
   const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
   const [feedbackSuccess, setFeedbackSuccess] = useState('');
-  
+
   // Voting state
   const [votingOption, setVotingOption] = useState('');
   const [votingSubmitting, setVotingSubmitting] = useState(false);
   const [votingSuccess, setVotingSuccess] = useState('');
-  
+
   // Verify votes state
   const [verifyingVotes, setVerifyingVotes] = useState(false);
 
@@ -44,7 +44,7 @@ const EventDetailPage = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       if (!eventId) {
         setError('Invalid event ID');
         setLoading(false);
@@ -53,9 +53,9 @@ const EventDetailPage = () => {
 
       const eventData = await eventService.getEventById(eventId);
       setEvent(eventData);
-      
+
       await fetchParticipants();
-      
+
     } catch (err) {
       console.error('Failed to fetch event details:', err);
       setError('Failed to load event details. Please try again later.');
@@ -67,13 +67,13 @@ const EventDetailPage = () => {
   // Function to fetch participants
   const fetchParticipants = async () => {
     if (!user || !eventId) return;
-    
+
     try {
       const participantsData = await eventService.getEventParticipants(eventId);
-      
-      const list = Array.isArray(participantsData) ? participantsData : 
-                  (participantsData && participantsData.data ? participantsData.data : []);
-      
+
+      const list = Array.isArray(participantsData) ? participantsData :
+        (participantsData && participantsData.data ? participantsData.data : []);
+
       setParticipants(list);
       setIsRegistered(list.some(p => p.userId === user.id));
     } catch (participantError) {
@@ -89,13 +89,13 @@ const EventDetailPage = () => {
       setError('No event ID provided');
       setLoading(false);
     }
-    
+
     const participantPolling = setInterval(() => {
       if (eventId && user) {
         fetchParticipants();
       }
     }, 10000);
-    
+
     return () => clearInterval(participantPolling);
   }, [eventId, user]);
 
@@ -104,11 +104,11 @@ const EventDetailPage = () => {
       navigate('/login', { state: { from: `/events/${eventId}` } });
       return;
     }
-    
+
     if (user.role === 'admin' || user.role === 'organizer') {
       return;
     }
-    
+
     setShowRegistrationForm(true);
   };
 
@@ -133,12 +133,26 @@ const EventDetailPage = () => {
     }
   };
 
+  const handleUpdateAttendance = async (participantId, status, rank) => {
+    try {
+      await eventService.updateAttendance(eventId, {
+        participantId,
+        attendanceStatus: status,
+        rank
+      });
+      fetchParticipants();
+    } catch (err) {
+      console.error('Failed to update attendance:', err);
+      alert(err.message || 'Failed to update attendance');
+    }
+  };
+
   // Handle feedback submission
   const handleFeedbackSubmit = async (e) => {
     e.preventDefault();
     setFeedbackSubmitting(true);
     setFeedbackSuccess('');
-    
+
     try {
       await eventService.submitFeedback(eventId, {
         rating: feedbackRating,
@@ -162,10 +176,10 @@ const EventDetailPage = () => {
   const handleVote = async (e) => {
     e.preventDefault();
     if (!votingOption) return;
-    
+
     setVotingSubmitting(true);
     setVotingSuccess('');
-    
+
     try {
       await eventService.voteForEvent(eventId, { candidateName: votingOption });
       setVotingSuccess('Your vote has been recorded!');
@@ -225,7 +239,7 @@ const EventDetailPage = () => {
 
   // Check if user has already voted
   const hasUserVoted = event?.voting?.voters?.some(v => v.userId === user?.id);
-  
+
   // Check if event is past
   const isEventPast = event && new Date(event.date) < new Date();
 
@@ -411,15 +425,21 @@ const EventDetailPage = () => {
                 🎓 Certificate of Participation
               </h3>
               <div className="mt-2 max-w-xl text-sm text-gray-500">
-                <p>Thank you for participating in this event! You can download your certificate of participation.</p>
+                <p>Thank you for participating in this event!</p>
               </div>
               <div className="mt-5">
-                <button
-                  onClick={handleDownloadCertificate}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
-                >
-                  Download Certificate
-                </button>
+                {participants?.find(p => String(p.userId) === String(user?.id))?.attendanceStatus === 'completed' || event?.participants?.find(p => String(p.userId) === String(user?.id))?.attendanceStatus === 'completed' ? (
+                  <button
+                    onClick={handleDownloadCertificate}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
+                  >
+                    Download Certificate
+                  </button>
+                ) : (
+                  <span className="inline-flex items-center px-4 py-2 rounded-md font-medium text-sm bg-yellow-100 text-yellow-800">
+                    ⏳ Certificate will be available after the organizer marks your attendance as completed.
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -522,7 +542,7 @@ const EventDetailPage = () => {
                   </span>
                 )}
               </div>
-              
+
               {/* Show voting options and results */}
               {event.voting.options && event.voting.options.length > 0 && (
                 <div className="mt-4">
@@ -532,8 +552,8 @@ const EventDetailPage = () => {
                         <span className="font-medium">{option.candidateName}</span>
                         <div className="flex items-center">
                           <div className="w-32 bg-gray-200 rounded-full h-2 mr-3">
-                            <div 
-                              className="bg-indigo-600 h-2 rounded-full" 
+                            <div
+                              className="bg-indigo-600 h-2 rounded-full"
                               style={{ width: `${(option.votes / (event.voting.options.reduce((a, b) => a + b.votes, 0) || 1)) * 100}%` }}
                             />
                           </div>
@@ -544,7 +564,7 @@ const EventDetailPage = () => {
                   </div>
                 </div>
               )}
-              
+
               {/* Voting form for participants */}
               {isRegistered && !hasUserVoted && !event.voting.adminVerified && (
                 <form onSubmit={handleVote} className="mt-4">
@@ -569,9 +589,9 @@ const EventDetailPage = () => {
                   {votingSuccess && <p className="mt-2 text-green-600">{votingSuccess}</p>}
                 </form>
               )}
-              
+
               {hasUserVoted && <p className="mt-2 text-gray-500">You have already voted.</p>}
-              
+
               {/* Admin verify button */}
               {isAdmin && !event.voting.adminVerified && (
                 <button
@@ -594,29 +614,35 @@ const EventDetailPage = () => {
               <div className="mt-2 max-w-xl text-sm text-gray-500">
                 <p>
                   {isRegistered
-                    ? "You are registered for this event."
+                    ? "You are successfully registered for this event."
                     : participants && event && participants.length >= (event.capacity || 0)
-                    ? "This event has reached its capacity."
-                    : "Register to secure your spot for this event."}
+                      ? "This event has reached its capacity."
+                      : "Register to secure your spot for this event."}
                 </p>
               </div>
               <div className="mt-5">
                 {isRegistered ? (
-                  <button
-                    onClick={handleCancelRegistration}
-                    className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                  >
-                    Cancel Registration
-                  </button>
+                  <div className="flex items-center gap-4">
+                    <span className="inline-flex items-center px-4 py-2 rounded-md font-bold text-sm bg-green-100 text-green-800">
+                      ✅ Registered
+                    </span>
+                    {event?.fees === 0 && (
+                      <button
+                        onClick={handleCancelRegistration}
+                        className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                      >
+                        Cancel Registration
+                      </button>
+                    )}
+                  </div>
                 ) : (
                   <button
                     onClick={handleRegister}
                     disabled={participants && event && participants.length >= (event.capacity || 0)}
-                    className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white ${
-                      participants && event && participants.length >= (event.capacity || 0)
-                        ? "bg-gray-400 cursor-not-allowed"
-                        : "bg-indigo-600 hover:bg-indigo-700"
-                    }`}
+                    className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white ${participants && event && participants.length >= (event.capacity || 0)
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : "bg-indigo-600 hover:bg-indigo-700"
+                      }`}
                   >
                     Register Now
                   </button>
@@ -649,8 +675,8 @@ const EventDetailPage = () => {
                 {participants && participants.length > 0 ? (
                   <ul className="divide-y divide-gray-200">
                     {participants.map((participant) => (
-                      <li key={participant.userId || `participant-${Math.random()}`} className="py-4 flex">
-                        <div className="ml-3">
+                      <li key={participant.userId || `participant-${Math.random()}`} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between">
+                        <div className="ml-3 mb-2 sm:mb-0">
                           <p className="text-sm font-medium text-gray-900">
                             {participant.name || 'Unnamed Participant'}
                           </p>
@@ -658,6 +684,34 @@ const EventDetailPage = () => {
                             {participant.email || 'No email provided'} - {participant.college || 'No college'}
                           </p>
                         </div>
+                        {isEventCreator || isAdmin ? (
+                          <div className="ml-3 flex items-center space-x-2">
+                            <select
+                              value={participant.attendanceStatus || 'registered'}
+                              onChange={(e) => handleUpdateAttendance(participant.userId || participant._id, e.target.value, participant.rank)}
+                              className="text-sm border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                            >
+                              <option value="registered">Registered</option>
+                              <option value="attended">Attended</option>
+                              <option value="completed">Completed</option>
+                              <option value="absent">Absent</option>
+                            </select>
+                            <select
+                              value={participant.rank || 'participated'}
+                              onChange={(e) => handleUpdateAttendance(participant.userId || participant._id, participant.attendanceStatus, e.target.value)}
+                              className="text-sm border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                              disabled={participant.attendanceStatus !== 'completed'}
+                            >
+                              <option value="participated">Participated</option>
+                              <option value="1">Rank 1</option>
+                              <option value="2">Rank 2</option>
+                              <option value="3">Rank 3</option>
+                            </select>
+                            {participant.certificateId && (
+                              <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Cert Gen</span>
+                            )}
+                          </div>
+                        ) : null}
                       </li>
                     ))}
                   </ul>
@@ -668,7 +722,7 @@ const EventDetailPage = () => {
             </div>
           </div>
         )}
-        
+
         {/* Event Announcements Section */}
         <div className="mt-6">
           <EventAnnouncements eventId={eventId} eventTitle={event?.title} />

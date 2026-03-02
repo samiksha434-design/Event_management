@@ -18,36 +18,53 @@ exports.downloadCertificate = async (req, res, next) => {
         const event = await Event.findById(req.params.id);
         if (!event) return res.status(404).json({ success: false, message: 'Event not found' });
 
-        // Validate if event is completed (or in past)
-        if (new Date(event.date) >= new Date()) {
-            return res.status(400).json({ success: false, message: 'Event is not yet completed' });
-        }
-
-        const participant = event.participants.find(p => p.userId.toString() === req.user.id.toString());
+        const participant = event.participants.find(p => p.userId && p.userId.toString() === req.user.id.toString());
         if (!participant) return res.status(403).json({ success: false, message: 'You did not participate in this event' });
 
-        // Generate PDF
-        const doc = new PDFDocument({ size: 'A4', layout: 'landscape' });
+        const fs = require('fs');
+        const path = require('path');
+
+        // Validate if event is completed via attendanceStatus
+        if (participant.attendanceStatus !== 'completed') {
+            return res.status(400).json({ success: false, message: 'Certificate is only available after event completion' });
+        }
+
+        let certFilePath;
+        let fileName;
+
+        if (participant.certificateId && participant.certificatePath) {
+            // Remove leading slash if exists to prevent path absolute resolution issues on Windows
+            const relativePath = participant.certificatePath.startsWith('/') ? participant.certificatePath.substring(1) : participant.certificatePath;
+            certFilePath = path.join(__dirname, '../../', relativePath);
+            fileName = `certificate_${participant.certificateId}.pdf`;
+        }
+
+        if (!certFilePath || !fs.existsSync(certFilePath)) {
+            // Generate it if doesn't exist but status is completed
+            const certResult = await generateCertificate(
+                participant.name,
+                event.title,
+                event.date,
+                event.college,
+                participant.rank
+            );
+
+            participant.certificateId = certResult.certificateId;
+            participant.certificatePath = certResult.certificatePath;
+            participant.certificateGeneratedAt = new Date();
+            await event.save();
+
+            certFilePath = certResult.filePath;
+            fileName = `certificate_${certResult.certificateId}.pdf`;
+        }
+
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename=certificate_${event._id}.pdf`);
-        doc.pipe(res);
+        res.setHeader('Content-Disposition', `attachment; filename=${fileName}`);
 
-        doc.rect(20, 20, doc.page.width - 40, doc.page.height - 40).stroke();
-        doc.fontSize(30).text('Certificate of Participation', { align: 'center' });
-        doc.moveDown();
-        doc.fontSize(20).text('This is to certify that', { align: 'center' });
-        doc.moveDown();
-        doc.fontSize(25).fillColor('blue').text(participant.name || 'Participant', { align: 'center' });
-        doc.moveDown();
-        doc.fontSize(20).fillColor('black').text(`has successfully participated in`, { align: 'center' });
-        doc.moveDown();
-        doc.fontSize(25).text(event.title, { align: 'center' });
-        doc.moveDown();
-        doc.fontSize(15).text(`Date: ${new Date(event.date).toLocaleDateString()}`, { align: 'center' });
-        doc.text(`College: ${event.college}`, { align: 'center' });
-
-        doc.end();
+        const stream = fs.createReadStream(certFilePath);
+        stream.pipe(res);
     } catch (error) {
+        console.error("CERT ERROR:", error);
         next(error);
     }
 };
@@ -160,7 +177,7 @@ exports.sendEventResults = async (req, res, next) => {
         }
 
         const { results, message } = req.body;
-        
+
         if (!results && !message) {
             return res.status(400).json({ success: false, message: 'Please provide results or message' });
         }
@@ -201,7 +218,7 @@ exports.sendEventResults = async (req, res, next) => {
             to: adminEmail,
             subject: `Event Results Sent: ${event.title}`,
             message: `Results for event "${event.title}" have been sent to participants.\n\nTotal participants: ${participants.length}\nSuccessful: ${successful}\nFailed: ${failed}`
-        }).catch(() => {});
+        }).catch(() => { });
 
         res.status(200).json({
             success: true,
@@ -224,14 +241,14 @@ exports.updateAttendance = async (req, res, next) => {
             return res.status(403).json({ success: false, message: 'Not authorized to update attendance' });
         }
 
-        const { participantId, attendanceStatus } = req.body;
+        const { participantId, attendanceStatus, rank } = req.body;
 
         // Validate attendance status
         const validStatuses = ['registered', 'attended', 'completed', 'absent'];
         if (!validStatuses.includes(attendanceStatus)) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Invalid attendance status. Must be one of: registered, attended, completed, absent' 
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid attendance status. Must be one of: registered, attended, completed, absent'
             });
         }
 
@@ -249,17 +266,22 @@ exports.updateAttendance = async (req, res, next) => {
 
         // Update attendance status
         event.participants[participantIndex].attendanceStatus = attendanceStatus;
+        if (rank) {
+            event.participants[participantIndex].rank = rank;
+        }
 
         // If status changes to "completed", generate certificate
         if (attendanceStatus === 'completed' && previousStatus !== 'completed') {
             try {
                 console.log(`Generating certificate for participant: ${participant.name}`);
-                
+
                 // Generate PDF certificate
                 const certResult = await generateCertificate(
                     participant.name,
                     event.title,
-                    event.date
+                    event.date,
+                    event.college,
+                    event.participants[participantIndex].rank
                 );
 
                 // Update participant with certificate details

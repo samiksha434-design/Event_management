@@ -116,7 +116,19 @@ const eventService = {
       });
       return response;
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to download certificate');
+      if (error.response && error.response.data instanceof Blob) {
+        let json;
+        let textContent = '';
+        try {
+          textContent = await error.response.data.text();
+          json = JSON.parse(textContent);
+        } catch (e) {
+          throw new Error(`Server returned error status ${error.response.status}. Raw response: ${textContent.substring(0, 100)}`);
+        }
+        throw new Error(`Server Error: ${json.message || 'Unknown server error'}`);
+      }
+      // If it's a network error or no response
+      throw new Error(`Network/Request Error: ${error.message}`);
     }
   },
 
@@ -212,6 +224,20 @@ const eventService = {
       return response.data;
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Failed to fetch participants');
+    }
+  },
+
+  // Update participant attendance and rank
+  updateAttendance: async (eventId, attendanceData) => {
+    if (!eventId || eventId === 'undefined' || eventId === 'null') {
+      throw new Error('Invalid event ID for attendance update');
+    }
+
+    try {
+      const response = await eventApi.put(`/${eventId}/attendance`, attendanceData);
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to update attendance');
     }
   }
 };

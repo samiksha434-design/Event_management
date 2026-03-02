@@ -14,7 +14,7 @@ const app = express();
 // Set up rate limiter: max 100 requests per 15 minutes per IP
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+  max: 1000, // Limit each IP to 1000 requests per windowMs
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
   message: 'Too many requests from this IP, please try again after 15 minutes'
@@ -56,6 +56,7 @@ const proxyOptions = {
 app.use('/api/auth', proxy(AUTH_SERVICE, proxyOptions));
 app.use('/api/admin', proxy(AUTH_SERVICE, proxyOptions));
 app.use('/api/events', proxy(EVENT_SERVICE, proxyOptions));
+app.use('/api/payment', proxy(EVENT_SERVICE, proxyOptions));
 app.use('/api/notifications', proxy(NOTIFICATION_SERVICE, proxyOptions));
 app.use('/api/email', proxy(NOTIFICATION_SERVICE, proxyOptions));
 app.use('/api/announcements', proxy(NOTIFICATION_SERVICE, proxyOptions));

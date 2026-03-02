@@ -57,6 +57,11 @@ const eventSchema = new mongoose.Schema({
       enum: ['registered', 'attended', 'completed', 'absent'],
       default: 'registered'
     },
+    rank: {
+      type: String,
+      enum: ['1', '2', '3', 'participated'],
+      default: 'participated'
+    },
     certificateId: {
       type: String,
       default: null

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import { eventService } from '../../services';
 import { useAuth } from '../../context/AuthContext';
+import PaymentButton from '../payment/PaymentButton';
 
 const EventRegistrationForm = ({ event, onClose, onSuccess }) => {
   const { user } = useAuth();
@@ -28,6 +29,13 @@ const EventRegistrationForm = ({ event, onClose, onSuccess }) => {
     setError(null);
 
     try {
+      if (event && event.fees > 0) {
+        // Validation only - don't proceed to backend yet for paid events since clicking 'Pay Now' will handle redirect
+        // Ideally this would lock the form or prevent submission until payment completes,
+        // but for demo purposes, the PaymentButton handles its own click.
+        // We will prevent default submission here.
+        return;
+      }
       // Add registration data to the request
       console.log('Submitting registration with data:', formData); // Debug log
       await eventService.registerForEvent(event._id, formData);
@@ -126,13 +134,24 @@ const EventRegistrationForm = ({ event, onClose, onSuccess }) => {
                 </div>
 
                 <div className="mt-6 sm:flex sm:flex-row-reverse">
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm ${loading ? 'opacity-75 cursor-not-allowed' : ''}`}
-                  >
-                    {loading ? 'Registering...' : 'Complete Registration'}
-                  </button>
+                  {event && event.fees > 0 ? (
+                    <PaymentButton
+                      email={formData.email}
+                      amount={event.fees}
+                      buttonText={`Pay Now (₹${event.fees})`}
+                      className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium sm:ml-3 sm:w-auto sm:text-sm`}
+                      eventId={event._id}
+                      registrationData={formData}
+                    />
+                  ) : (
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm ${loading ? 'opacity-75 cursor-not-allowed' : ''}`}
+                    >
+                      {loading ? 'Registering...' : 'Complete Registration'}
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={onClose}

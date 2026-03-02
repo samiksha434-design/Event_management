@@ -22,7 +22,7 @@ const EventForm = ({ initialData, onSubmit, isSubmitting, submitButtonText }) =>
 
   const handleChange = (e) => {
     const { name, value, type } = e.target;
-    
+
     // Handle number inputs
     if (type === 'number') {
       setFormData({
@@ -75,38 +75,44 @@ const EventForm = ({ initialData, onSubmit, isSubmitting, submitButtonText }) =>
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!formData.title.trim()) {
       newErrors.title = 'Title is required';
     }
-    
+
     if (!formData.description.trim()) {
       newErrors.description = 'Description is required';
     }
-    
+
     if (!formData.date) {
       newErrors.date = 'Date is required';
+    } else {
+      // Validate that date is not in the past
+      const selectedDate = new Date(`${formData.date}T${formData.time || '00:00'}`);
+      if (selectedDate < new Date()) {
+        newErrors.date = 'Event date and time cannot be in the past';
+      }
     }
-    
+
     if (!formData.time) {
       newErrors.time = 'Time is required';
     }
-    
+
     if (!formData.location.trim()) {
       newErrors.location = 'Location is required';
     }
-    
+
     if (formData.capacity <= 0) {
       newErrors.capacity = 'Capacity must be greater than 0';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     if (validateForm()) {
       onSubmit(formData);
     }
@@ -166,6 +172,7 @@ const EventForm = ({ initialData, onSubmit, isSubmitting, submitButtonText }) =>
               type="date"
               name="date"
               id="date"
+              min={new Date().toISOString().split('T')[0]}
               value={formData.date}
               onChange={handleChange}
               className={`shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md px-3 py-2 ${errors.date ? 'border-red-300' : ''}`}
@@ -277,7 +284,7 @@ const EventForm = ({ initialData, onSubmit, isSubmitting, submitButtonText }) =>
           )}
         </div>
 
-{/* Image URL */}
+        {/* Image URL */}
         <div className="sm:col-span-6">
           <label htmlFor="image" className="block text-sm font-medium text-gray-700">
             Image URL (Optional)

@@ -22,3 +22,6 @@ export { default as EditAnnouncementPage } from './EditAnnouncementPage';
 
 // Leaderboard Pages
 export { default as LeaderboardPage } from './LeaderboardPage';
+
+// Payment Pages
+export { default as PaymentSuccessPage } from './PaymentSuccessPage';

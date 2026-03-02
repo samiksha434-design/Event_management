@@ -12,23 +12,56 @@ import {
   Box,
   CircularProgress,
   Chip,
-  Alert
+  Alert,
+  Button
 } from '@mui/material';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import DownloadIcon from '@mui/icons-material/Download';
+import { useSelector } from 'react-redux';
+import { eventService } from '../../services';
 
 const LeaderboardTable = ({ eventId }) => {
   const [leaderboard, setLeaderboard] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [participants, setParticipants] = useState([]);
+  const { user, isAuthenticated } = useSelector((state) => state.auth);
+
+  const handleDownloadCertificate = async (eventId) => {
+    try {
+      const response = await eventService.getCertificate(eventId);
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `certificate_${eventId}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to download certificate:', err);
+      // Give specifically the actual server error text if generated, rather than constant default 
+      alert(err.message || 'Failed to download certificate.');
+    }
+  };
 
   useEffect(() => {
     const fetchLeaderboard = async () => {
       try {
         setLoading(true);
         setError(null);
-        
+
         const data = await leaderboardService.getEventLeaderboard(eventId);
         setLeaderboard(data);
+
+        if (isAuthenticated) {
+          try {
+            const parts = await eventService.getEventParticipants(eventId);
+            setParticipants(Array.isArray(parts) ? parts : (parts?.data || []));
+          } catch (e) {
+            console.error('Failed to fetch participants for leaderboard', e);
+          }
+        }
       } catch (err) {
         console.error('Error fetching leaderboard:', err);
         setError(err.message || 'Failed to load leaderboard');
@@ -81,7 +114,7 @@ const LeaderboardTable = ({ eventId }) => {
       <Typography variant="h5" component="h2" gutterBottom sx={{ mb: 3 }}>
         Event Leaderboard
       </Typography>
-      
+
       <TableContainer component={Paper} sx={{ boxShadow: 3 }}>
         <Table aria-label="leaderboard table">
           <TableHead sx={{ backgroundColor: 'primary.main' }}>
@@ -91,11 +124,12 @@ const LeaderboardTable = ({ eventId }) => {
               <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>College</TableCell>
               <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="right">Score</TableCell>
               <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Achievements</TableCell>
+              <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="center">Certificate</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {leaderboard.map((entry) => (
-              <TableRow 
+              <TableRow
                 key={entry._id}
                 sx={{
                   '&:nth-of-type(odd)': { backgroundColor: 'action.hover' },
@@ -106,12 +140,12 @@ const LeaderboardTable = ({ eventId }) => {
                 <TableCell>
                   <Box display="flex" alignItems="center">
                     {entry.rank <= 3 && (
-                      <EmojiEventsIcon 
-                        sx={{ 
+                      <EmojiEventsIcon
+                        sx={{
                           color: getMedalColor(entry.rank),
                           mr: 1,
                           filter: 'drop-shadow(0px 2px 2px rgba(0,0,0,0.3))'
-                        }} 
+                        }}
                       />
                     )}
                     {entry.rank}
@@ -128,11 +162,11 @@ const LeaderboardTable = ({ eventId }) => {
                   <Box display="flex" flexWrap="wrap" gap={0.5}>
                     {entry.achievements && entry.achievements.length > 0 ? (
                       entry.achievements.map((achievement, index) => (
-                        <Chip 
-                          key={index} 
-                          label={achievement} 
-                          size="small" 
-                          color="secondary" 
+                        <Chip
+                          key={index}
+                          label={achievement}
+                          size="small"
+                          color="secondary"
                           variant="outlined"
                         />
                       ))
@@ -140,6 +174,29 @@ const LeaderboardTable = ({ eventId }) => {
                       <Typography variant="body2" color="text.secondary">None</Typography>
                     )}
                   </Box>
+                </TableCell>
+                <TableCell align="center">
+                  {isAuthenticated && user && (String(user._id) === String(entry.userId) || String(user.id) === String(entry.userId)) ? (
+                    participants.find(p => String(p.userId) === String(user._id) || String(p.userId) === String(user.id))?.attendanceStatus === 'completed' ? (
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        color="primary"
+                        startIcon={<DownloadIcon />}
+                        onClick={() => handleDownloadCertificate(eventId)}
+                      >
+                        Download
+                      </Button>
+                    ) : (
+                      <Typography variant="body2" color="text.secondary" title="Complete the event to unlock your certificate">
+                        Pending
+                      </Typography>
+                    )
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      Private
+                    </Typography>
+                  )}
                 </TableCell>
               </TableRow>
             ))}

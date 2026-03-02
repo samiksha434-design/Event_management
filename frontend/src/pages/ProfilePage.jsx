@@ -17,7 +17,7 @@ const ProfilePage = () => {
     college: ''
   });
   const [updateSuccess, setUpdateSuccess] = useState(false);
-  
+
   // Event history state
   const [eventHistory, setEventHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -60,28 +60,28 @@ const ProfilePage = () => {
   useEffect(() => {
     const fetchEventHistory = async () => {
       if (!user) return;
-      
+
       try {
         setHistoryLoading(true);
         const response = await eventService.getUserEventHistory();
         const events = response.data || [];
         setEventHistory(events);
-        
+
         // Filter events where user has a certificate (attendanceStatus === 'completed')
         const userCerts = [];
         events.forEach(event => {
           const participant = event.participants?.find(
             p => p.userId === user._id || p.userId === user.id
           );
-          if (participant && participant.attendanceStatus === 'completed' && participant.certificateId) {
+          if (participant && participant.attendanceStatus === 'completed') {
             userCerts.push({
               eventId: event._id,
               eventTitle: event.title,
               eventDate: event.date,
               college: event.college,
-              certificateId: participant.certificateId,
+              certificateId: participant.certificateId || 'Auto-generated',
               certificatePath: participant.certificatePath,
-              certificateGeneratedAt: participant.certificateGeneratedAt
+              certificateGeneratedAt: participant.certificateGeneratedAt || (new Date())
             });
           }
         });
@@ -92,7 +92,7 @@ const ProfilePage = () => {
         setHistoryLoading(false);
       }
     };
-    
+
     fetchEventHistory();
   }, [user]);
 
@@ -231,7 +231,7 @@ const ProfilePage = () => {
                   Profile updated successfully!
                 </div>
               )}
-              
+
               <div className="flex flex-col md:flex-row">
                 <div className="md:w-1/3 mb-6 md:mb-0">
                   <div className="flex flex-col items-center">
@@ -252,7 +252,7 @@ const ProfilePage = () => {
                     </span>
                   </div>
                 </div>
-                
+
                 <div className="md:w-2/3">
                   {isEditing ? (
                     <form onSubmit={handleSubmit} className="space-y-4">
@@ -356,7 +356,7 @@ const ProfilePage = () => {
                   )}
                 </div>
               </div>
-              
+
               {renderRoleSpecificInfo()}
             </div>
           ) : null}
@@ -450,61 +450,60 @@ const ProfilePage = () => {
                     const participant = event.participants?.find(
                       p => p.userId === user?._id || p.userId === user?.id
                     );
-                    const hasCertificate = participant?.attendanceStatus === 'completed' && participant?.certificateId;
-                    
+                    const hasCertificate = participant?.attendanceStatus === 'completed';
+
                     return (
                       <tr key={event._id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">{event.title}</div>
                         </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {event.college}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {formatDate(event.date)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
-                          {event.category || 'N/A'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {participant ? (
-                          <span className={`px-2 py-1 rounded text-xs ${
-                            participant.attendanceStatus === 'completed' 
-                              ? 'bg-green-100 text-green-800' 
-                              : participant.attendanceStatus === 'registered'
-                                ? 'bg-blue-100 text-blue-800'
-                                : 'bg-gray-100 text-gray-800'
-                          }`}>
-                            {participant.attendanceStatus === 'completed' 
-                              ? 'Completed' 
-                              : participant.attendanceStatus === 'registered'
-                                ? 'Registered'
-                                : participant.attendanceStatus || 'Unknown'}
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {event.college}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {formatDate(event.date)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
+                            {event.category || 'N/A'}
                           </span>
-                        ) : (
-                          <span className="text-gray-400 text-sm">Not registered</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        {hasCertificate ? (
-                          <button
-                            onClick={() => handleDownloadCertificate(event._id, event.certificatePath, event.title)}
-                            className="text-green-600 hover:text-green-900 flex items-center"
-                          >
-                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            Download
-                          </button>
-                        ) : (
-                          <span className="text-gray-400 text-sm">Not available</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {participant ? (
+                            <span className={`px-2 py-1 rounded text-xs ${participant.attendanceStatus === 'completed'
+                                ? 'bg-green-100 text-green-800'
+                                : participant.attendanceStatus === 'registered'
+                                  ? 'bg-blue-100 text-blue-800'
+                                  : 'bg-gray-100 text-gray-800'
+                              }`}>
+                              {participant.attendanceStatus === 'completed'
+                                ? 'Completed'
+                                : participant.attendanceStatus === 'registered'
+                                  ? 'Registered'
+                                  : participant.attendanceStatus || 'Unknown'}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400 text-sm">Not registered</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          {hasCertificate ? (
+                            <button
+                              onClick={() => handleDownloadCertificate(event._id, event.certificatePath, event.title)}
+                              className="text-green-600 hover:text-green-900 flex items-center"
+                            >
+                              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                              Download
+                            </button>
+                          ) : (
+                            <span className="text-gray-400 text-sm">Not available</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

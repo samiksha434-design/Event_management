@@ -25,6 +25,15 @@ exports.createEvent = async (req, res, next) => {
       organizerName = `${req.user.firstName} ${req.user.lastName}`;
     }
 
+    // Check if event date is in the past
+    const eventDate = new Date(date);
+    if (eventDate < new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Event date cannot be in the past'
+      });
+    }
+
     // Handle voting settings
     const votingSettings = enableVoting ? {
       enabled: true,
@@ -93,6 +102,7 @@ exports.createEvent = async (req, res, next) => {
  * @access  Public
  */
 exports.getAllEvents = async (req, res, next) => {
+  console.log('GET /api/events hit!');
   try {
     // Build query based on request query parameters
     const query = {};
@@ -151,8 +161,10 @@ exports.getAllEvents = async (req, res, next) => {
       ];
     }
 
+    console.log('Query:', query);
     // Get events
     const events = await Event.find(query).sort({ date: 1 });
+    console.log('Events found:', events.length);
 
     res.status(200).json({
       success: true,
@@ -160,6 +172,7 @@ exports.getAllEvents = async (req, res, next) => {
       data: events
     });
   } catch (error) {
+    console.error('Error in getAllEvents:', error);
     next(error);
   }
 };
@@ -327,7 +340,7 @@ exports.registerForEvent = async (req, res, next) => {
     try {
       const notificationServiceUrl = process.env.NOTIFICATION_SERVICE || 'http://localhost:8005';
       const adminEmail = process.env.ADMIN_EMAIL || 'admin@collexa.com';
-      
+
       if (participantEmail && participantEmail !== 'No email provided') {
         // Send confirmation to participant
         await axios.post(`${notificationServiceUrl}/api/email/send`, {
@@ -336,14 +349,14 @@ exports.registerForEvent = async (req, res, next) => {
           message: `Hello ${participantName},\n\nYou have successfully registered for the event "${event.title}" hosted by ${event.college || event.organizerName}. The event is scheduled on ${new Date(event.date).toLocaleDateString()}.\n\nLocation: ${event.location || 'TBA'}\n\nThank you for using Collexa Events!`
         });
       }
-      
+
       // Notify admin about new registration
       await axios.post(`${notificationServiceUrl}/api/email/send`, {
         to: adminEmail,
         subject: `New Registration: ${event.title}`,
         message: `New registration for event "${event.title}".\n\nParticipant: ${participantName}\nEmail: ${participantEmail}\nCollege: ${req.user.college || 'N/A'}\n\nTotal participants: ${event.participants.length}/${event.capacity}`
       }).catch(err => console.error('Failed to notify admin:', err.message));
-      
+
     } catch (err) {
       console.error('Failed to send registration email:', err.message);
     }
